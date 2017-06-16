@@ -1,6 +1,7 @@
 from collections import deque
 import time
 import requests
+import urllib.parse
 
 # Constants
 BRAZIL = 'BR'
@@ -298,28 +299,9 @@ class RiotWatcher:
         raise_status(r)
         return r.json()
 
-    def _observer_mode_request(self, url, proxy=None, **kwargs):
-        if proxy is None:
-            proxy = self.default_region
-        args = {'api_key': self.key}
-        for k in kwargs:
-            if kwargs[k] is not None:
-                args[k] = kwargs[k]
-        r = requests.get(
-            'https://{proxy}.api.pvp.net/observer-mode/rest/{url}'.format(
-                proxy=proxy,
-                url=url
-            ),
-            params=args
-        )
-        for lim in self.limits:
-            lim.add_request()
-        raise_status(r)
-        return r.json()
-
     @staticmethod
     def sanitized_name(name):
-        return name.replace(' ', '').lower()
+        return urllib.parse.quote_plus(name.replace(' ', '').lower())
 
     # champion-v1.2
     def _champion_request(self, end_url, region, **kwargs):
