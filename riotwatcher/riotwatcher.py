@@ -3,31 +3,48 @@ import time
 import requests
 
 # Constants
-BRAZIL = 'br'
-EUROPE_NORDIC_EAST = 'eune'
-EUROPE_WEST = 'euw'
-KOREA = 'kr'
-LATIN_AMERICA_NORTH = 'lan'
-LATIN_AMERICA_SOUTH = 'las'
-NORTH_AMERICA = 'na'
-OCEANIA = 'oce'
-RUSSIA = 'ru'
-TURKEY = 'tr'
-JAPAN = 'jp'
+BRAZIL = 'BR'
+EUROPE_NORDIC_EAST = 'EUNE'
+EUROPE_WEST = 'EUW'
+JAPAN = 'JP'
+KOREA = 'KR'
+LATIN_AMERICA_NORTH = 'LAN'
+LATIN_AMERICA_SOUTH = 'LAS'
+NORTH_AMERICA = 'NA'
+OCEANIA = 'OCE'
+TURKEY = 'TR'
+RUSSIA = 'RU'
+PBE = 'PBE'
+
+endpoint_hosts = {
+    BRAZIL: 'br1.api.riotgames.com',
+    EUROPE_NORDIC_EAST: 'eun1.api.riotgames.com',
+    EUROPE_WEST: 'euw1.api.riotgames.com',
+    JAPAN: 'jp1.api.riotgames.com',
+    KOREA: 'kr.api.riotgames.com',
+    LATIN_AMERICA_NORTH: 'la1.api.riotgames.com',
+    LATIN_AMERICA_SOUTH: 'la2.api.riotgames.com',
+    NORTH_AMERICA: 'na1.api.riotgames.com',
+    OCEANIA: 'oc1.api.riotgames.com',
+    TURKEY: 'tr1.api.riotgames.com',
+    RUSSIA: 'ru.api.riotgames.com',
+    PBE: 'pbe1.api.riotgames.com'
+}
 
 # Platforms
 platforms = {
     BRAZIL: 'BR1',
     EUROPE_NORDIC_EAST: 'EUN1',
     EUROPE_WEST: 'EUW1',
+    JAPAN: 'JP1',
     KOREA: 'KR',
     LATIN_AMERICA_NORTH: 'LA1',
     LATIN_AMERICA_SOUTH: 'LA2',
     NORTH_AMERICA: 'NA1',
     OCEANIA: 'OC1',
-    RUSSIA: 'RU',
     TURKEY: 'TR1',
-    JAPAN: 'JP1'
+    RUSSIA: 'RU',
+    PBE: 'PBE1'
 }
 
 queue_types = [
@@ -165,7 +182,7 @@ api_versions = {
     'match': 2.2,
     'matchlist': 2.2,
     'stats': 1.3,
-    'summoner': 1.4,
+    'summoner': 'v3',
     'team': 2.4
 }
 
@@ -244,8 +261,8 @@ class RateLimit:
 
 
 class RiotWatcher:
-    def __init__(self, key, default_region=NORTH_AMERICA, limits=(RateLimit(10, 10), RateLimit(500, 600), )):
-        self.key = key  #If you have a production key, use limits=(RateLimit(3000,10), RateLimit(180000,600),)
+    def __init__(self, key, default_region=NORTH_AMERICA, limits=(RateLimit(10, 10), RateLimit(500, 600),)):
+        self.key = key  # If you have a production key, use limits=(RateLimit(3000,10), RateLimit(180000,600),)
         self.default_region = default_region
         self.limits = limits
 
@@ -263,10 +280,8 @@ class RiotWatcher:
             if kwargs[k] is not None:
                 args[k] = kwargs[k]
         r = requests.get(
-            'https://{proxy}.api.pvp.net/api/lol/{static}{region}/{url}'.format(
-                proxy='global' if static else region,
-                static='static-data/' if static else '',
-                region=region,
+            'https://{endpoint}/{url}'.format(
+                endpoint=endpoint_hosts[region],
                 url=url
             ),
             params=args
@@ -520,7 +535,7 @@ class RiotWatcher:
         r = requests.get('http://status.leagueoflegends.com/{url}'.format(url=url))
         raise_status(r)
         return r.json()
-    
+
     # match list-v2.2
     def _match_list_request(self, end_url, region, **kwargs):
         return self.base_request(
@@ -534,7 +549,7 @@ class RiotWatcher:
 
     def get_match_list(self, summoner_id, region=None, champion_ids=None, ranked_queues=None, season=None,
                        begin_time=None, end_time=None, begin_index=None, end_index=None):
-        if ranked_queues is not None and not isinstance(ranked_queues, str) :
+        if ranked_queues is not None and not isinstance(ranked_queues, str):
             ranked_queues = ','.join(ranked_queues)
         if season is not None and not isinstance(season, str):
             season = ','.join(season)
@@ -574,15 +589,13 @@ class RiotWatcher:
             season='SEASON{}'.format(season) if season is not None else None
         )
 
-    # summoner-v1.4
+    # summoner-v3
     def _summoner_request(self, end_url, region, **kwargs):
         return self.base_request(
-            'v{version}/summoner/{end_url}'.format(
+            'lol/summoner/{version}/summoners/{end_url}'.format(
                 version=api_versions['summoner'],
                 end_url=end_url
-            ),
-            region,
-            **kwargs
+            ), region, **kwargs
         )
 
     def get_mastery_pages(self, summoner_ids, region=None):
@@ -597,32 +610,42 @@ class RiotWatcher:
             region
         )
 
-    def get_summoners(self, names=None, ids=None, region=None):
-        if (names is None) != (ids is None):
+    def get_summoner_by_account_id(self, _id, region=None):
+        """
+            Get Summoner by account id
+            version: summoner-v3
+        """
+        if id is not None:
             return self._summoner_request(
-                'by-name/{summoner_names}'.format(
-                    summoner_names=','.join([self.sanitized_name(n) for n in names])) if names is not None
-                else '{summoner_ids}'.format(summoner_ids=','.join([str(i) for i in ids])),
+                'by-account/{account_id}'.format(account_id=str(_id)),
                 region
             )
-        else:
-            return None
-
-    def get_summoner(self, name=None, _id=None, region=None):
-        if (name is None) != (_id is None):
-            if name is not None:
-                name = self.sanitized_name(name)
-                key, summoner = self.get_summoners(names=[name, ], region=region).popitem()
-                return summoner
-            else:
-                return self.get_summoners(ids=[_id, ], region=region)[str(_id)]
         return None
 
-    def get_summoner_name(self, summoner_ids, region=None):
-        return self._summoner_request(
-            '{summoner_ids}/name'.format(summoner_ids=','.join([str(s) for s in summoner_ids])),
-            region
-        )
+    def get_summoner_by_name(self, name, region=None):
+        """
+            Get Summoner by name
+            version: summoner-v3
+        """
+        if name is not None:
+            return self._summoner_request(
+                'by-name/{summoner_name}'.format(summoner_name=self.sanitized_name(name)),
+                region
+            )
+        return None
+
+    def get_summoner_by_id(self, _id, region=None):
+        """
+            Get Summoner by id
+            version: summoner-v3
+        """
+        if _id is not None:
+            return self._summoner_request(
+                '{summoner_id}'.format(summoner_id=str(_id)),
+                region
+            )
+        return None
+
 
     # team-v2.4
     def _team_request(self, end_url, region, **kwargs):
