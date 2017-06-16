@@ -183,6 +183,7 @@ api_versions = {
     'matchlist': 2.2,
     'stats': 1.3,
     'summoner': 'v3',
+    'spectator': 'v3',
     'team': 2.4
 }
 
@@ -273,6 +274,11 @@ class RiotWatcher:
         return True
 
     def base_request(self, url, region, static=False, **kwargs):
+        """
+        Base request for the API
+        :param url: url to the target request
+        :return: JSON returned by the Riot API
+        """
         if region is None:
             region = self.default_region
         args = {'api_key': self.key}
@@ -332,21 +338,29 @@ class RiotWatcher:
     def get_champion(self, champion_id, region=None):
         return self._champion_request('{id}'.format(id=champion_id), region)
 
-    # current-game-v1.0
-    def get_current_game(self, summoner_id, platform_id=None, region=None):
-        if platform_id is None:
-            platform_id = platforms[self.default_region]
-        return self._observer_mode_request(
-            'consumer/getSpectatorGameInfo/{platform}/{summoner_id}'.format(
-                platform=platform_id,
+    def get_current_game(self, summoner_id, region=None):
+        """
+        Get current game for a summoner.
+        spectator v3
+        """
+        return self.base_request(
+            'lol/spectator/{version}/active-games/by-summoner/{summoner_id}'.format(
+                version=api_versions['spectator'],
                 summoner_id=summoner_id
             ),
             region
         )
 
-    # featured-game-v1.0
-    def get_featured_games(self, proxy=None):
-        return self._observer_mode_request('featured', proxy)
+    def get_featured_games(self, region=None):
+        """
+        Get featured games.
+        spectator v3
+        """
+        return self.base_request('lol/spectator/{version}/featured-games'.format(
+                version=api_versions['spectator']
+            ),
+            region
+        )
 
     # game-v1.3
     def _game_request(self, end_url, region, **kwargs):
