@@ -180,11 +180,11 @@ api_versions = {
     'league': 2.5,
     'lol-static-data': 1.2,
     'lol-status': 1.0,
-    'match': 2.2,
     'matchlist': 2.2,
     'stats': 1.3,
     'summoner': 'v3',
     'spectator': 'v3',
+    'match': 'v3',
     'team': 2.4
 }
 
@@ -301,7 +301,112 @@ class RiotWatcher:
 
     @staticmethod
     def sanitized_name(name):
+        """
+        Put summoner name in the appropriate format to send to API
+        """
         return urllib.parse.quote_plus(name.replace(' ', '').lower())
+
+    def get_match_ids_by_tournament(self, tournament_code, region=None):
+        """
+        Get match IDs by tournament code.
+        match v3
+        """
+        if tournament_code is not None:
+            return self.base_request(
+                'lol/match/{version}/matches/by-tournament-code/{tournament_code}/ids'.format(
+                    version=api_versions['match'],
+                    tournament_code=tournament_code
+                ),
+                region
+            )
+        return None
+
+    def get_match(self, match_id, region=None):
+        """
+        Get match by match ID.
+        match v3
+        """
+        if match_id is not None:
+            return self.base_request(
+                'lol/match/{version}/matches/{match_id}'.format(
+                    version=api_versions['match'],
+                    match_id=match_id
+                ),
+                region
+            )
+        return None
+
+    def get_match_timeline(self, match_id, region=None):
+        """
+        Get match timeline by match ID.
+        match v3
+        """
+        if match_id is not None:
+            return self.base_request(
+                'lol/match/v3/timelines/by-match/{match_id}'.format(
+                    version=api_versions['match'],
+                    match_id=match_id
+                ),
+                region
+            )
+        return None
+
+    def get_match_by_id_and_tournament_code(self, _id, tournament_code, region=None):
+        """
+        Get match by match ID and tournament code.
+        match v3
+        """
+        if _id is not None and tournament_code is not None:
+            return self.base_request(
+                'lol/match/{version}/matches/{match_id}/by-tournament-code/{tournament_code}/ids'.format(
+                    version=api_versions['match'],
+                    match_id=_id,
+                    tournament_code=tournament_code
+                ),
+                region
+            )
+        return None
+
+    def get_match_list(self, account_id, queue_ids=None, season_ids=None, champion_ids=None,
+                       begin_time=None, end_time=None, begin_index=None, end_index=None, region=None):
+        """
+        Get matchlist for ranked games played on given account ID and platform ID and filtered
+        using given filter parameters, if any.
+        match v3
+        """
+        if account_id is not None:
+            return self.base_request(
+                'lol/match/{version}/matchlists/by-account/{account_id}'.format(
+                    version=api_versions['match'],
+                    account_id=account_id,
+                ),
+                region,
+                queue=queue_ids,
+                season=season_ids,
+                champion=champion_ids,
+                beginTime=begin_time,
+                endTime=end_time,
+                beginIndex=begin_index,
+                endIndex=end_index
+            )
+        return None
+
+    def get_recent_match_list(self, account_id, region=None):
+        """
+        Get matchlist for last 20 matches played on given account ID and platform ID.
+        """
+        if account_id is not None:
+            return self.base_request(
+                'lol/match/{version}/matchlists/by-account/{account_id}/recent'.format(
+                    version=api_versions['match'],
+                    account_id=account_id,
+                ),
+                region,
+            )
+        return None
+
+
+
 
     # champion-v1.2
     def _champion_request(self, end_url, region, **kwargs):
@@ -354,9 +459,6 @@ class RiotWatcher:
             region,
             **kwargs
         )
-
-    def get_recent_games(self, summoner_id, region=None):
-        return self._game_request('by-summoner/{summoner_id}/recent'.format(summoner_id=summoner_id), region)
 
     # league-v2.5
     def _league_request(self, end_url, region, **kwargs):
@@ -514,13 +616,6 @@ class RiotWatcher:
             **kwargs
         )
 
-    def get_match(self, match_id, region=None, include_timeline=False):
-        return self._match_request(
-            '{match_id}'.format(match_id=match_id),
-            region,
-            includeTimeline=include_timeline
-        )
-
     # lol-status-v1.0
     @staticmethod
     def get_server_status(region=None):
@@ -541,24 +636,6 @@ class RiotWatcher:
             ),
             region,
             **kwargs
-        )
-
-    def get_match_list(self, summoner_id, region=None, champion_ids=None, ranked_queues=None, season=None,
-                       begin_time=None, end_time=None, begin_index=None, end_index=None):
-        if ranked_queues is not None and not isinstance(ranked_queues, str):
-            ranked_queues = ','.join(ranked_queues)
-        if season is not None and not isinstance(season, str):
-            season = ','.join(season)
-        return self._match_list_request(
-            '{summoner_id}'.format(summoner_id=summoner_id),
-            region,
-            championIds=champion_ids,
-            rankedQueues=ranked_queues,
-            seasons=season,
-            beginTime=begin_time,
-            endTime=end_time,
-            beginIndex=begin_index,
-            endIndex=end_index
         )
 
     # stats-v1.3

@@ -3,7 +3,7 @@ import time
 from riotwatcher import RiotWatcher
 
 key = '<key>'
-summoner_name = 'GorilaMineira'
+summoner_name = 'Bandejão'
 
 w = RiotWatcher(key, default_region='BR')
 
@@ -32,13 +32,30 @@ def spectate_test():
     w.get_current_game(summoner_id)
 
 
+def match_test(summ_name):
+    account_id = w.get_summoner_by_name(summ_name)['accountId']
+
+    sample_match_id = w.get_recent_match_list(account_id)['matches'][0]['gameId']
+    w.get_match(sample_match_id)
+    w.get_match_timeline(sample_match_id)
+
+    w.get_match_list(account_id, queue_ids=None, season_ids=None, champion_ids=None,
+                     begin_time=None, end_time=None, begin_index=None, end_index=None)
+
+
+# def tournament_match_test():
+#    w.get_match_ids_by_tournament(tournament_code)
+#    w.get_match_by_id_and_tournament_code(_id, tournament_code)
+
+
 def main():
     print('Initiating tests...')
     summoner_test(summoner_name)
-    print('summoner test passed')
+    print('summoner test passed.')
     spectate_test()
-    print('spectate test passed')
-
+    print('spectate test passed.')
+    match_test(summoner_name)
+    print('match test passed.')
     print('all tests passed, w00t. if only they were better tests...')
 
 
