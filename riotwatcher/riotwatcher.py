@@ -178,10 +178,10 @@ api_versions = {
     'featured-games': 1.0,
     'game': 1.3,
     'league': 2.5,
-    'lol-static-data': 1.2,
     'lol-status': 1.0,
     'matchlist': 2.2,
     'stats': 1.3,
+    'lol-static-data': 'v3',
     'summoner': 'v3',
     'spectator': 'v3',
     'match': 'v3',
@@ -296,6 +296,7 @@ class RiotWatcher:
         if not static:
             for lim in self.limits:
                 lim.add_request()
+        print(r.url)
         raise_status(r)
         return r.json()
 
@@ -405,25 +406,47 @@ class RiotWatcher:
             )
         return None
 
-
-
-
-    # champion-v1.2
-    def _champion_request(self, end_url, region, **kwargs):
+    def _get_static_data(self, url, region=None, **kwargs):
+        """
+        Base for static requests
+        :param url: url complement for the static request
+        :param region: region for the request
+        """
         return self.base_request(
-            'v{version}/champion/{end_url}'.format(
-                version=api_versions['champion'],
-                end_url=end_url
+            '/lol/static-data/{version}/{url}'.format(
+                version=api_versions['lol-static-data'],
+                url=url,
             ),
             region,
             **kwargs
         )
 
-    def get_all_champions(self, region=None, free_to_play=False):
-        return self._champion_request('', region, freeToPlay=free_to_play)
+    def get_champion(self, champion_id, region=None, locale=None, version=None, tags=None):
+        """
+        Get champion by its ID.
+        """
+        if champion_id is not None:
+            return self._get_static_data(
+                'champions/{id}'.format(id=champion_id),
+                region=region,
+                locale=locale,
+                version=version,
+                tags=tags,
+            )
+        return None
 
-    def get_champion(self, champion_id, region=None):
-        return self._champion_request('{id}'.format(id=champion_id), region)
+    def get_all_champions(self, region=None, locale=None, version=None, tags=None, data_by_id=None):
+        """
+        Get champion list.
+        """
+        return self._get_static_data(
+            'champions',
+            region=region,
+            locale=locale,
+            version=version,
+            tags=tags,
+            dataById=data_by_id
+        )
 
     def get_current_game(self, summoner_id, region=None):
         """

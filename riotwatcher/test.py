@@ -47,6 +47,12 @@ def match_test(summ_name):
 #    w.get_match_ids_by_tournament(tournament_code)
 #    w.get_match_by_id_and_tournament_code(_id, tournament_code)
 
+def champions_test():
+    wait()
+    w.get_all_champions()
+    wait()
+    w.get_champion(10)
+
 
 def main():
     print('Initiating tests...')
@@ -56,6 +62,9 @@ def main():
     print('spectate test passed.')
     match_test(summoner_name)
     print('match test passed.')
+    champions_test()
+    print('match test passed.')
+
     print('all tests passed, w00t. if only they were better tests...')
 
 
